@@ -7,8 +7,8 @@
     <description>Draws a frame within Camera view.</description>
     <license>MIT</license>
 
-    <repo>https://github.com/NNA/CameraFrame</repo>
-    <issue>https://github.com/NNA/CameraFrame/issues</issue>
+    <repo>https://github.com/NNA/cordova-plugin-cameraframe</repo>
+    <issue>https://github.com/NNA/cordova-plugin-cameraframe/issues</issue>
 
     <engines>
         <engine name="cordova" version=">=3.0.0" />
