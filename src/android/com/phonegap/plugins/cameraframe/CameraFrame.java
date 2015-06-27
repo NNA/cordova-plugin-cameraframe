@@ -23,8 +23,8 @@ import org.apache.cordova.PluginResult;
 public class CameraFrame extends CordovaPlugin {
     public static final int REQUEST_CODE = 0x0ba7c0de;
 
-    //private static final String SCAN_INTENT = "com.phonegap.plugins.cameraframe.SCAN";
-    private static final String SCAN_INTENT = "com.google.zxing.client.android.SCAN";
+    private static final String SCAN_INTENT = "com.phonegap.plugins.cameraframe.SCAN";
+    //private static final String SCAN_INTENT = "com.google.zxing.client.android.SCAN";
 
     private CallbackContext callbackContext;
 
@@ -56,6 +56,7 @@ public class CameraFrame extends CordovaPlugin {
 
         if (action.equals("scan")) {
             scan();
+            
         } else {
             return false;
         }

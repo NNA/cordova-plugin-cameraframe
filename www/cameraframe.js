@@ -34,7 +34,7 @@ var cameraExport = {};
  */
 cameraExport.getPicture = function(successCallback, errorCallback) {
 
-    exec(successCallback, errorCallback, "CameraFrame", "scan");
+    exec(successCallback, errorCallback, "CameraFrame", "scan", []);
 };
 
 // cameraExport.cleanup = function(successCallback, errorCallback) {

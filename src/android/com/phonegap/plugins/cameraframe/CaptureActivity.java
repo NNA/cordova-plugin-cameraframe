@@ -16,6 +16,11 @@
 
 package com.phonegap.plugins.cameraframe;
 
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.hardware.Camera;
+import android.widget.Button;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -60,7 +65,6 @@ import java.util.Set;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.Result;
-import com.google.zxing.client.android.Intents;
 
 /**
  * This activity opens the camera and does the actual scanning on a background thread. It draws a
@@ -78,27 +82,17 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
   private static final long DEFAULT_INTENT_RESULT_DURATION_MS = 1500L;
   private static final long BULK_MODE_SCAN_DELAY_MS = 1000L;
 
-  private static final String PACKAGE_NAME = "com.google.zxing.client.android";
-  private static final String PRODUCT_SEARCH_URL_PREFIX = "http://www.google";
-  private static final String PRODUCT_SEARCH_URL_SUFFIX = "/m/products/scan";
-  private static final String[] ZXING_URLS = { "http://zxing.appspot.com/scan", "zxing://scan/" };
+  private static final String PACKAGE_NAME = "com.phonegap.plugins.cameraframe";
   private static final String RETURN_CODE_PLACEHOLDER = "{CODE}";
   private static final String RETURN_URL_PARAM = "ret";
   private static final String RAW_PARAM = "raw";
-
-  public static final int HISTORY_REQUEST_CODE = 0x0000bacc;
-
-  private static final Set<ResultMetadataType> DISPLAYABLE_METADATA_TYPES =
-      EnumSet.of(ResultMetadataType.ISSUE_NUMBER,
-                 ResultMetadataType.SUGGESTED_PRICE,
-                 ResultMetadataType.ERROR_CORRECTION_LEVEL,
-                 ResultMetadataType.POSSIBLE_COUNTRY);
 
   private CameraManager cameraManager;
   private CaptureActivityHandler handler;
   private Result savedResultToShow;
   private ViewfinderView viewfinderView;
   private TextView statusView;
+  private Button flipButton;
   private View resultView;
   private Result lastResult;
   private boolean hasSurface;
@@ -107,7 +101,11 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
   private String sourceUrl;
   private String returnUrlTemplate;
   private boolean returnRaw;
+  private Collection<BarcodeFormat> decodeFormats;
   private String characterSet;
+  //private HistoryManager historyManager;
+  private InactivityTimer inactivityTimer;
+  //private BeepManager beepManager;
 
   ViewfinderView getViewfinderView() {
     return viewfinderView;
@@ -122,6 +120,14 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
   }
 
   @Override
+  public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    // recreate is required for cases when no targetSdkVersion has been set in AndroidManifest.xml
+    // and the orientation has changed
+    recreate();
+  }
+
+  @Override
   public void onCreate(Bundle icicle) {
     super.onCreate(icicle);
 
@@ -132,118 +138,22 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     setContentView(fakeR.getId("layout", "capture"));
 
     hasSurface = false;
-    PreferenceManager.setDefaultValues(this, fakeR.getId("xml", "preferences"), false);
-
-    //showHelpOnFirstLaunch();
-  }
-
-  // @Override
-  protected void onResume(Collection<BarcodeFormat> decodeFormats) {
-    super.onResume();
-
-    // CameraManager must be initialized here, not in onCreate(). This is necessary because we don't
-    // want to open the camera driver and measure the screen size if we're going to show the help on
-    // first launch. That led to bugs where the scanning rectangle was the wrong size and partially
-    // off screen.
-    cameraManager = new CameraManager(getApplication());
-
-    viewfinderView = (ViewfinderView) findViewById(fakeR.getId("id", "viewfinder_view"));
-    viewfinderView.setCameraManager(cameraManager);
-
-    resultView = findViewById(fakeR.getId("id", "result_view"));
-    statusView = (TextView) findViewById(fakeR.getId("id", "status_view"));
-
-    handler = null;
-    lastResult = null;
-
-    resetStatusView();
-
-    SurfaceView surfaceView = (SurfaceView) findViewById(fakeR.getId("id", "preview_view"));
-    SurfaceHolder surfaceHolder = surfaceView.getHolder();
-    if (hasSurface) {
-      // The activity was paused but not stopped, so the surface still exists. Therefore
-      // surfaceCreated() won't be called, so init the camera here.
-      initCamera(surfaceHolder);
-    } else {
-      // Install the callback and wait for surfaceCreated() to init the camera.
-      surfaceHolder.addCallback(this);
-      surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-    }
-
-    Intent intent = getIntent();
-
-    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-    copyToClipboard = prefs.getBoolean(PreferencesActivity.KEY_COPY_TO_CLIPBOARD, true)
-        && (intent == null || intent.getBooleanExtra(Intents.Scan.SAVE_HISTORY, true));
-
-    // source = IntentSource.NONE;
-    source = IntentSource.NATIVE_APP_INTENT;
-    decodeFormats = null;
-    characterSet = null;
-
-    if (intent != null) {
-
-      String action = intent.getAction();
-      String dataString = intent.getDataString();
-
-      if (Intents.Scan.ACTION.equals(action)) {
-
-        // Scan the formats the intent requested, and return the result to the calling activity.
-        source = IntentSource.NATIVE_APP_INTENT;
-        decodeFormats = DecodeFormatManager.parseDecodeFormats(intent);
-
-        if (intent.hasExtra(Intents.Scan.WIDTH) && intent.hasExtra(Intents.Scan.HEIGHT)) {
-          int width = intent.getIntExtra(Intents.Scan.WIDTH, 0);
-          int height = intent.getIntExtra(Intents.Scan.HEIGHT, 0);
-          if (width > 0 && height > 0) {
-            cameraManager.setManualFramingRect(width, height);
-          }
-        }
-
-        String customPromptMessage = intent.getStringExtra(Intents.Scan.PROMPT_MESSAGE);
-        if (customPromptMessage != null) {
-          statusView.setText(customPromptMessage);
-        }
-
-      }
-
-      characterSet = intent.getStringExtra(Intents.Scan.CHARACTER_SET);
-
-    }
-  }
-
-  @Override
-  protected void onPause() {
-    if (handler != null) {
-      handler.quitSynchronously();
-      handler = null;
-    }
-    //inactivityTimer.onPause();
-    cameraManager.closeDriver();
-    if (!hasSurface) {
-      SurfaceView surfaceView = (SurfaceView) findViewById(fakeR.getId("id", "preview_view"));
-      SurfaceHolder surfaceHolder = surfaceView.getHolder();
-      surfaceHolder.removeCallback(this);
-    }
-    super.onPause();
-  }
-
-  @Override
-  protected void onDestroy() {
-    //inactivityTimer.shutdown();
-    super.onDestroy();
   }
 
   @Override
   public void onActivityResult(int requestCode, int resultCode, Intent intent) {
-    if (resultCode == RESULT_OK) {
-      if (requestCode == HISTORY_REQUEST_CODE) {
-        int itemNumber = intent.getIntExtra(Intents.History.ITEM_NUMBER, -1);
-      }
-    }
+    // if (resultCode == RESULT_OK) {
+    //   if (requestCode == HISTORY_REQUEST_CODE) {
+    //     int itemNumber = intent.getIntExtra(Intents.History.ITEM_NUMBER, -1);
+    //     if (itemNumber >= 0) {
+    //       HistoryItem historyItem = historyManager.buildHistoryItem(itemNumber);
+    //       decodeOrStoreSavedBitmap(null, historyItem.getResult());
+    //     }
+    //   }
+    // }
   }
 
-  // @Override
+  @Override
   public void surfaceCreated(SurfaceHolder holder) {
     if (holder == null) {
       Log.e(TAG, "*** WARNING *** surfaceCreated() gave us a null surface!");
@@ -254,18 +164,14 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     }
   }
 
-  // @Override
+  @Override
   public void surfaceDestroyed(SurfaceHolder holder) {
     hasSurface = false;
   }
 
-  // @Override
+  @Override
   public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 
-  }
-
-  private static void drawLine(Canvas canvas, Paint paint, ResultPoint a, ResultPoint b) {
-    canvas.drawLine(a.getX(), a.getY(), b.getX(), b.getY(), paint);
   }
 
   private void initCamera(SurfaceHolder surfaceHolder) {
@@ -280,10 +186,9 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
       cameraManager.openDriver(surfaceHolder);
       // Creating the handler starts the preview, which can also throw a RuntimeException.
       if (handler == null) {
-		Collection<BarcodeFormat> decodeFormats;
-	//	handler = new CaptureActivityHandler(this, decodeFormats, characterSet, cameraManager);
+        //handler = new CaptureActivityHandler(this, decodeFormats, characterSet, cameraManager);
       }
-      //decodeOrStoreSavedBitmap(null, null);
+      // decodeOrStoreSavedBitmap(null, null);
     } catch (IOException ioe) {
       Log.w(TAG, ioe);
       displayFrameworkBugMessageAndExit();
