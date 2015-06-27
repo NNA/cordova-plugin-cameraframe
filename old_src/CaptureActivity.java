@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.phonegap.plugins.cameraframed;
+package com.phonegap.plugins.cameraframe;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -57,6 +57,10 @@ import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.Result;
+import com.google.zxing.client.android.Intents;
 
 /**
  * This activity opens the camera and does the actual scanning on a background thread. It draws a
@@ -133,8 +137,8 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     //showHelpOnFirstLaunch();
   }
 
-  @Override
-  protected void onResume() {
+  // @Override
+  protected void onResume(Collection<BarcodeFormat> decodeFormats) {
     super.onResume();
 
     // CameraManager must be initialized here, not in onCreate(). This is necessary because we don't
@@ -214,7 +218,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
       handler.quitSynchronously();
       handler = null;
     }
-    inactivityTimer.onPause();
+    //inactivityTimer.onPause();
     cameraManager.closeDriver();
     if (!hasSurface) {
       SurfaceView surfaceView = (SurfaceView) findViewById(fakeR.getId("id", "preview_view"));
@@ -226,7 +230,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 
   @Override
   protected void onDestroy() {
-    inactivityTimer.shutdown();
+    //inactivityTimer.shutdown();
     super.onDestroy();
   }
 
@@ -239,7 +243,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     }
   }
 
-  @Override
+  // @Override
   public void surfaceCreated(SurfaceHolder holder) {
     if (holder == null) {
       Log.e(TAG, "*** WARNING *** surfaceCreated() gave us a null surface!");
@@ -250,12 +254,12 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
     }
   }
 
-  @Override
+  // @Override
   public void surfaceDestroyed(SurfaceHolder holder) {
     hasSurface = false;
   }
 
-  @Override
+  // @Override
   public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 
   }
@@ -276,9 +280,10 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
       cameraManager.openDriver(surfaceHolder);
       // Creating the handler starts the preview, which can also throw a RuntimeException.
       if (handler == null) {
-        handler = new CaptureActivityHandler(this, decodeFormats, characterSet, cameraManager);
+		Collection<BarcodeFormat> decodeFormats;
+	//	handler = new CaptureActivityHandler(this, decodeFormats, characterSet, cameraManager);
       }
-      decodeOrStoreSavedBitmap(null, null);
+      //decodeOrStoreSavedBitmap(null, null);
     } catch (IOException ioe) {
       Log.w(TAG, ioe);
       displayFrameworkBugMessageAndExit();

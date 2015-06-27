@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src/android"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jre1.7.0_60">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/Library/Java/JavaVirtualMachines"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/nicolasnardone/dev/cordova-plugin-cameraframe/libs/org.json-20131017.jar"/>
+	<classpathentry kind="lib" path="/Applications/adt-bundle-mac-x86_64-20140702/sdk/platforms/android-22/android.jar" sourcepath="/Applications/adt-bundle-mac-x86_64-20140702/sdk/sources/android-22">
+		<attributes>
+			<attribute name="javadoc_location" value="http://developer.android.com/reference/"/>
+		</attributes>
+		<accessrules>
+			<accessrule kind="nonaccessible" pattern="com/android/internal/**"/>
+		</accessrules>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/nicolasnardone/dev/cordova-plugin-cameraframe/libs/cordova-4.0.2.jar"/>
+	<classpathentry kind="lib" path="libs/com.google.zxing.client.android.captureactivity.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
