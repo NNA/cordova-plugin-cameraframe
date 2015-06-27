@@ -21,8 +21,6 @@
     <!-- android -->
     <platform name="android">
 
-        <source-file src="src/android/com/phonegap/plugins/cameraframe/CameraFrame.java" target-dir="src/com/phonegap/plugins/cameraframe" />
-
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="CameraFrame">
                 <param name="android-package" value="com.phonegap.plugins.cameraframe.CameraFrame" />
